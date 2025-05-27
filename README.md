@@ -9,7 +9,12 @@
 - 🎨 Gradio 互動式網頁介面，支援即時生成、下載
 - 💡 寫作建議、分支選擇、風格調整等輔助功能
 
-## 安裝與啟動
+## 快速開始
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1-3v7mfjlRB-U3KHwFw9S_xQAdQegFgP5?usp=sharing)
+
+點擊上方連結，在 Google Colab 中快速體驗本專案！
+
+## 本地安裝與啟動
 1. **安裝依賴**（建議使用 Poetry 或 venv）：
    ```bash
    # 使用 Poetry
@@ -36,7 +41,7 @@
 - `ui/`：Gradio 前端介面
 - `config/`：設定檔
 - `data/`、`output/`：資料與輸出
-- `colab/`：Colab 筆記本（如有）
+- `colab/`：Colab 筆記本（可在[這裡](https://colab.research.google.com/drive/1-3v7mfjlRB-U3KHwFw9S_xQAdQegFgP5?usp=sharing)直接體驗）
 
 ## 貢獻與聯絡
 歡迎 issue、PR 或討論改進！
