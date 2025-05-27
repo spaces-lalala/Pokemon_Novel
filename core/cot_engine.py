@@ -179,7 +179,7 @@ class CoTEngine:
         """
         print(f"Generating initial story plan for: Theme='{theme}', Genre='{genre}', Abilities='{include_abilities}'")
         initial_plan = await self._generate_story_plan_initial(theme, genre, pokemon_names, synopsis, include_abilities)
-        
+
         print("Reviewing and revising story plan...")
         reviewer_result = await self._review_and_revise_story_plan(
             theme, genre, pokemon_names, synopsis, include_abilities, initial_plan

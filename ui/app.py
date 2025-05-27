@@ -457,14 +457,14 @@ with gr.Blocks(theme=None, css=custom_css, title="寶可夢宇宙 - 故事生成
             output_suggestions = gr.Markdown(label="寫作建議") # Suggestions output remains Markdown
             
             gr.Markdown("### 步驟三：故事大綱 (可編輯)")
-            output_story_plan = gr.Textbox(label="產生的故事大綱 (您可以在此編輯)", lines=15, interactive=True, placeholder="點擊「產生故事大綱」後，大綱將顯示於此處並可進行編輯...")
+            output_story_plan = gr.Markdown(label="產生的故事大綱") # Plan output is now Markdown
             btn_download_plan = gr.Button("📥 下載故事大綱 (.txt)", elem_classes="lucario-neutral-button")
             download_plan_file = gr.File(label="下載大綱檔案", visible=False, interactive=False)
 
             btn_generate_story_from_plan = gr.Button("📜 從上方大綱產生完整故事", variant="secondary", elem_classes="lucario-secondary-button")
             
             gr.Markdown("### 步驟四：完整故事")
-            output_full_story = gr.Markdown(label="產生的完整故事") # Full story output remains Markdown
+            output_full_story = gr.Markdown(label="產生的完整故事") # Full story output is now Markdown
             btn_download_story = gr.Button("📥 下載完整故事 (.txt)", elem_classes="lucario-neutral-button")
             download_story_file = gr.File(label="下載故事檔案", visible=False, interactive=False)
 
