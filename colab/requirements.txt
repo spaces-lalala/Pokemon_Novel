@@ -1,5 +1,0 @@
-openai
-gradio
-python-dotenv
-langchain
-langchain-openai
