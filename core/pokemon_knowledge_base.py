@@ -2,42 +2,23 @@ import os
 import pandas as pd
 from typing import Optional, Dict, List
 
-# 設定 CSV 路徑
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
 POKEMON_CSV_PATH = os.path.join(DATA_DIR, 'pokemon_data.csv')
 
-# 載入資料
 try:
     _df = pd.read_csv(POKEMON_CSV_PATH, encoding='utf-8')
 except Exception as e:
     print(f"[寶可夢知識庫] 載入失敗: {e}")
     _df = pd.DataFrame(columns=["id", "zh_name", "en_name", "ja_name"])
 
-# 建立查詢字典（加速查找）
 _pokemon_dict = {row['zh_name']: row.to_dict() for _, row in _df.iterrows()}
 
 
 def get_pokemon_details_by_zh_name(zh_name: str) -> Optional[Dict[str, str]]:
-    """
-    根據中文名稱查詢寶可夢詳細資訊。
-
-    Args:
-        zh_name: 中文名稱
-    Returns:
-        dict (包含 id, zh_name, en_name, ja_name) 或 None
-    """
     return _pokemon_dict.get(zh_name)
 
 
 def format_pokemon_names_for_prompt(user_input: str) -> str:
-    """
-    將使用者輸入的寶可夢名稱（逗號分隔）轉換為「中文名 (英文名)」格式，若查無則僅保留原輸入。
-
-    Args:
-        user_input: 例如 "皮卡丘, 伊布"
-    Returns:
-        例如 "皮卡丘 (Pikachu), 伊布 (Eevee)"
-    """
     names = [name.strip() for name in user_input.split(',') if name.strip()]
     formatted = []
     for name in names:
@@ -49,7 +30,6 @@ def format_pokemon_names_for_prompt(user_input: str) -> str:
     return ', '.join(formatted)
 
 if __name__ == "__main__":
-    # 測試查詢
     print("[測試] 查詢皮卡丘:", get_pokemon_details_by_zh_name("皮卡丘"))
     print("[測試] 格式化: 皮卡丘, 伊布, 超夢 =>", format_pokemon_names_for_prompt("皮卡丘, 伊布, 超夢"))
-    print("[測試] 格式化: 小火龍, 妙蛙種子, 不存在寶可夢 =>", format_pokemon_names_for_prompt("小火龍, 妙蛙種子, 不存在寶可夢")) 
+    print("[測試] 格式化: 小火龍, 妙蛙種子, 不存在寶可夢 =>", format_pokemon_names_for_prompt("小火龍, 妙蛙種子, 不存在寶可夢"))

@@ -1,465 +1,348 @@
-"""
-This module stores all prompt templates used in the application.
-
-Using a dedicated module for prompts helps in:
-- Centralizing all prompt strings for easy management and modification.
-- Version controlling prompts effectively.
-- Keeping the core logic files cleaner.
-"""
-
 from typing import List, Dict, Any
 
-# --- Story Generation Prompts ---
-
-# This is a very basic CoT structure. We might need to refine this based on results.
-# It could involve more steps or more specific instructions for each step.
-
 STORY_PLANNING_PROMPT_TEMPLATE = """
-<s>[INST] You are a master storyteller specializing in the world of Pokémon. 
-Your task is to create a significant and coherent plan or outline for a short Pokémon story based on the user's inputs.
-When creating the plan, please use **Traditional Chinese (繁體中文)**, and ensure the language style and vocabulary are as close as possible to **common usage in Taiwan (台灣常用風格)** for all parts of the plan.
-Make sure the plan aligns with the specified **Story Genre: {genre}**.
-If the user wants to include Pokémon abilities (see 'Include Pokémon Abilities' below), ensure the plan allows for moments where these can be showcased effectively.
+<s>[INST] 您是一位專精於寶可夢世界的故事大師。
+您的任務是根據使用者的輸入，為短篇寶可夢故事創建一個重要且連貫的計劃或大綱。
+在創建計劃時，請使用**繁體中文**，並確保語言風格和詞彙盡可能接近**台灣常用風格**。
+確保計劃符合指定的**故事類型：{genre}**。
+如果使用者希望包含寶可夢能力（見下方「包含寶可夢能力」），請確保計劃允許有效展示這些能力的時刻。
 
-User Inputs:
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Pokémon Involved: {pokemon_names}
-- Story Synopsis/Idea: {synopsis}
-- Include Pokémon Abilities: {include_abilities}
+使用者輸入：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 涉及的寶可夢：{pokemon_names}
+- 故事概要/想法：{synopsis}
+- 包含寶可夢能力：{include_abilities}
 
-Please generate a structured story plan. Instead of many small points, aim for **3 to 5 major sections or stages** that represent significant parts of the story's progression. For example:
+請生成一個結構化的故事計劃。與其列出許多小點，請著重於**3到5個主要部分或階段**，代表故事進展的重要部分。例如：
 
-*   **Setup / Beginning:** Introduce the main characters, the initial setting, and the ordinary world before the main conflict begins.
-*   **Confrontation / Rising Action:** Describe the main conflict or problem, the challenges faced, and how the stakes are raised. This section might cover several key events that build tension.
-*   **Climax / Turning Point:** The most intense part of the story where the conflict reaches its peak.
-*   **Resolution / Aftermath:** How the conflict is resolved, and what happens to the characters afterward. Show the new normal.
+*   **設定 / 開端：** 介紹主要角色、初始場景，以及主要衝突開始前的普通世界。
+*   **對抗 / 上升行動：** 描述主要衝突或問題、面臨的挑戰，以及如何提高賭注。此部分可能涵蓋幾個關鍵事件以建立緊張感。
+*   **高潮 / 轉折點：** 故事中最激烈的部分，衝突達到頂峰。
+*   **結局 / 餘波：** 衝突如何解決，以及角色之後的情況。展示新的常態。
 
-Feel free to adapt these section names or structures if the story's flow suggests a different natural division (e.g., a mystery might have "The Discovery", "The Investigation", "The Revelation").
-**Each section in your plan should summarize a substantial portion of the story, not just a single event.**
+如果故事的流程建議不同的自然分段（例如，謎團可能有「發現」、「調查」、「揭露」），請隨意調整這些部分名稱或結構。
+**計劃中的每個部分應總結故事進展的重要部分，而不僅僅是一個事件。**
 
-Ensure the plan is coherent, creative, and stays true to the Pokémon world's spirit (e.g., themes of friendship, adventure, training, discovery).
-The plan should be detailed enough to guide the writing of a ~1000-1500 word short story, with each planned section being substantial enough to be expanded into several paragraphs or pages of text.
-Focus on making the story engaging and incorporating the specified Pokémon naturally into the narrative.
+確保計劃連貫、有創意，並忠於寶可夢世界的精神（例如，友誼、冒險、訓練、探索等主題）。
+計劃應足夠詳細，以指導撰寫約1000-1500字的短篇故事，每個計劃部分應足夠豐富，可以擴展為幾段或幾頁文字。
+專注於使故事引人入勝，並自然地將指定的寶可夢融入敘事中。
 
-Output the story plan ONLY. Do not write the full story yet. [/INST] Story Plan:"""
+僅輸出故事計劃。暫時不要撰寫完整故事。 [/INST] 故事計劃："""
 
 STORY_GENERATION_FROM_PLAN_PROMPT_TEMPLATE = """
-<s>[INST] You are a master storyteller specializing in the world of Pokémon.
-I will provide you with a story plan that was previously generated.
-Your task is to write a complete, engaging, and well-structured short Pokémon story (approximately 1000-1500 words, but feel free to write more if needed to make the story complete and engaging) based on this plan.
-Please use **Traditional Chinese (繁體中文)**, and ensure the language style, vocabulary, and phrasing are as close as possible to **common usage in Taiwan (台灣常用風格)**.
-The story should strongly reflect the specified **Story Genre: {genre}**.
+<s>[INST] 您是一位專精於寶可夢世界的故事大師。
+我將提供您之前生成的故事計劃。
+您的任務是根據此計劃撰寫一個完整、引人入勝且結構良好的短篇寶可夢故事（約1000-1500字，但如果需要更多字數以使故事完整且引人入勝，請隨意撰寫）。
+請使用**繁體中文**，並確保語言風格、詞彙和措辭盡可能接近**台灣常用風格**。
+故事應強烈反映指定的**故事類型：{genre}**。
 
-Story Plan:
+故事計劃：
 {story_plan}
 
-User's Original Inputs (for context, ensure these are reflected in the story):
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Pokémon Involved: {pokemon_names}
-- Story Synopsis/Idea: {synopsis}
-- Include Pokémon Abilities: {include_abilities}
+使用者的原始輸入（作為背景，確保這些在故事中有所反映）：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 涉及的寶可夢：{pokemon_names}
+- 故事概要/想法：{synopsis}
+- 包含寶可夢能力：{include_abilities}
 
-Writing Guidelines:
--   **Language Style**: Crucially, the story **must be written in Traditional Chinese (繁體中文) and adhere to common Taiwanese phrasing and vocabulary (台灣常用風格)**.
--   **Genre Adherence**: The story must align with the specified **Story Genre: {genre}**. For example, if the genre is "Comedy", ensure there are humorous elements. If "Sci-Fi", incorporate futuristic or technological aspects.
--   **Detailed Expansion of Each Plan Point**: For EACH section in the provided Story Plan (e.g., Introduction, Inciting Incident, Rising Action, Climax, Falling Action, Resolution), you MUST **elaborate significantly**. This means:
-    *   **Descriptive Language**: Use vivid descriptions for settings, characters' appearances, emotions, and actions.
-    *   **Show, Don't Tell**: Instead of stating facts, describe scenes and interactions that reveal those facts.
-    *   **Character Thoughts and Dialogue**: Include inner monologues for main characters (Pokémon or human) and meaningful dialogue between characters to advance the plot and reveal personality. If Pokémon cannot speak human language, describe their expressions, sounds, and actions to convey their feelings and intentions.
-    *   **Sensory Details**: Engage multiple senses (sight, sound, smell, touch, taste where appropriate) to make the scenes more immersive.
-    *   **Pacing within Sections**: Ensure each expanded section has a good flow and contributes to the overall narrative arc.
--   **Pokémon Abilities Integration (If 'Include Pokémon Abilities' is Yes)**: If the user requested it, naturally weave the known abilities, characteristics, or unique traits of the involved Pokémon into the narrative. For example, if Pikachu is involved and its ability is Static, an opponent might get paralyzed upon contact. If a Pokémon is known for its speed, describe its fast movements vividly. Show, don't just tell, these abilities in action.
--   **Narrative Style:** Write in a clear, descriptive, and engaging narrative style suitable for a Pokémon adventure story, adapted to the specified genre.
--   **Characterization:** Briefly bring the Pokémon and any human characters (if implied or can be inferred) to life with their actions and dialogue (if any).
--   **Pokémon Elements:** Naturally integrate Pokémon abilities, battles (if appropriate for the plan), and the general atmosphere of the Pokémon world.
--   **Pacing:** Ensure the story flows well from one part of the plan to the next, and that the overall story feels substantial.
--   **Word Count and Depth**: Aim for a story length of approximately **1000-1500 words, or even longer if necessary to fully develop the plot points from the plan**. The goal is a rich, detailed narrative, not just a summary. Do not rush the story; take the space needed to tell it well.
--   **Completeness:** The story should have a clear beginning, middle, and end, following the provided plan and expanding upon it.
--   **Tone:** Maintain a tone consistent with the user's theme and the general positive spirit of Pokémon, unless the theme explicitly suggests otherwise (e.g., a mystery story might have a more suspenseful tone).
+撰寫指南：
+-   **語言風格**：故事**必須以繁體中文撰寫，並符合台灣常用措辭和詞彙（台灣常用風格）**。
+-   **類型遵循**：故事必須符合指定的**故事類型：{genre}**。例如，如果類型是「喜劇」，請確保有幽默元素。如果是「科幻」，請融入未來或科技方面的內容。
+-   **詳細擴展每個計劃點**：對於提供的故事計劃中的每個部分（例如，介紹、激發事件、上升行動、高潮、下降行動、結局），您必須**大幅擴展**。這意味著：
+    *   **描述性語言**：使用生動的描述來描繪場景、角色的外貌、情感和行動。
+    *   **展示而非陳述**：與其陳述事實，不如描述場景和互動以揭示這些事實。
+    *   **角色思想和對話**：包括主要角色（寶可夢或人類）的內心獨白，以及角色之間有意義的對話，以推進情節並揭示個性。如果寶可夢無法說人類語言，請描述牠們的表情、聲音和行動，以傳達牠們的感受和意圖。
+    *   **感官細節**：調動多種感官（視覺、聽覺、嗅覺、觸覺、味覺，如適用）以使場景更具沉浸感。
+    *   **部分內的節奏**：確保每個擴展部分都有良好的流動性，並對整體敘事弧線有所貢獻。
+-   **寶可夢能力整合（如果「包含寶可夢能力」為是）**：如果使用者要求，自然地將涉及的寶可夢的已知能力、特徵或獨特特性融入敘事中。例如，如果涉及皮卡丘且其能力是靜電，對手可能在接觸時麻痺。如果某寶可夢以速度著稱，請生動描述其快速動作。展示，而非僅僅陳述，這些能力的作用。
+-   **敘事風格**：以清晰、描述性且引人入勝的敘事風格撰寫，適合寶可夢冒險故事，並根據指定類型進行調整。
+-   **角色塑造**：簡要通過行動和對話（如有）使寶可夢和任何人類角色（如果暗示或可以推斷）栩栩如生。
+-   **寶可夢元素**：自然地整合寶可夢能力、戰鬥（如果適合計劃），以及寶可夢世界的整體氛圍。
+-   **節奏**：確保故事從計劃的一部分流暢地過渡到下一部分，並且整體故事感覺內容充實。
+-   **字數和深度**：目標故事長度約為**1000-1500字，或更長以充分展開計劃中的情節點**。目標是豐富、詳細的敘事，而非僅僅摘要。不要急於完成故事；需要多少空間就用多少空間來講述故事。
+-   **完整性**：故事應有明確的開端、中間和結尾，遵循提供的計劃並擴展其內容。
+-   **語氣**：保持與使用者主題一致的語氣，以及寶可夢的整體積極精神，除非主題明確表明另有要求（例如，謎團故事可能有更懸疑的語氣）。
 
-Write the full story now. Output ONLY the story. Do not include any other commentary. [/INST] Pokémon Story:"""
+現在撰寫完整故事。僅輸出故事。不要包含任何其他評論。 [/INST] 寶可夢故事："""
 
-
-# --- User Input Assistance Prompts ---
 
 INPUT_REFINEMENT_SUGGESTION_PROMPT_TEMPLATE = """
-<s>[INST] You are a helpful AI assistant for a Pokémon story generator.
-The user has provided some initial input, but it could be more detailed to help create a richer story.
-Based on their current input, provide 1-2 helpful and concise suggestions or questions to encourage them to add more detail.
-Please provide your suggestions in **Traditional Chinese (繁體中文)**, using a **Taiwanese common phrasing and vocabulary (台灣常用風格)**.
+<s>[INST] 您是一個寶可夢故事生成器的有用 AI 助手。
+使用者提供了一些初步輸入，但可以更詳細以幫助創建更豐富的故事。
+根據他們目前的輸入，提供1-2個有幫助且簡潔的建議或問題，以鼓勵他們添加更多細節。
+請使用**繁體中文**，並使用**台灣常用措辭和詞彙（台灣常用風格）**。
 
-User's Current Input:
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Pokémon Involved: {pokemon_names}
-- Story Synopsis/Idea: {synopsis}
-- Include Pokémon Abilities: {include_abilities}
+使用者目前的輸入：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 涉及的寶可夢：{pokemon_names}
+- 故事概要/想法：{synopsis}
+- 包含寶可夢能力：{include_abilities}
 
-Examples of good suggestions for a **{genre}** story:
-- "Could you tell me a bit more about the personality of the main Pokémon mentioned ({pokemon_names_for_suggestion_context})?"
-- "What kind of relationship do the involved Pokémon have with each other or with any trainers?"
-- "Is there a specific region or type of environment you imagine this story taking place in (e.g., a dense forest, a bustling city, a quiet lakeside)?"
-- "What's the main challenge or goal you envision for the characters in this story?"
+針對**{genre}**故事的良好建議示例：
+- "您能否多說一些提到的主要寶可夢（{pokemon_names_for_suggestion_context}）的性格特徵？"
+- "涉及的寶可夢彼此或與任何訓練師之間有什麼樣的關係？"
+- "您想像這個故事發生在哪個特定地區或環境類型（例如，茂密的森林、繁忙的城市、寧靜的湖畔）？"
+- "您想像角色在這個故事中的主要挑戰或目標是什麼？"
 
-Your suggestions should be phrased politely and be easy for the user to act upon.
-Focus on aspects that would significantly enhance the story's depth or uniqueness.
-Provide only the suggestions, no extra conversational fluff. [/INST] Suggestions:"""
+您的建議應措辭禮貌且易於使用者採納。
+專注於顯著增強故事深度或獨特性的方面。
+僅提供建議，無需額外的對話性內容。 [/INST] 建議："""
 
-
-# --- Agent Prompts (for future use if implementing an agentic interaction) ---
-# This could be used if the AI needs to ask clarifying questions during the story generation process.
 
 AGENT_CLARIFICATION_PROMPT_TEMPLATE = """
-<s>[INST] You are an AI Pokémon story co-creator. You are currently helping a user write a story.
-Based on the story developed so far and the user\'s initial request, you\'ve identified a point where a little more detail from the user would be very helpful to proceed or to make a certain part of the story better.
+<s>[INST] 您是一位 AI 寶可夢故事共同創作者。您目前正在幫助使用者撰寫故事。
+根據目前已開發的故事和使用者的初始請求，您已確定某個點需要使用者提供更多細節，以幫助您繼續撰寫或使故事的某部分更好。
 
-User\'s Initial Request:
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Pokémon Involved: {pokemon_names} 
-- Story Synopsis/Idea: {synopsis}
+使用者的初始請求：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 涉及的寶可夢：{pokemon_names} 
+- 故事概要/想法：{synopsis}
 
-Story Developed So Far:
+目前已開發的故事：
 {current_story_context}
 
-Your Goal: Ask ONE concise, targeted question to the user to get a specific piece of information that will help you continue writing a great story. The question should feel natural and collaborative.
-If a specific Pokémon is relevant to your question, refer to it using {relevant_pokemon_name}.
+您的目標：向使用者提出一個簡潔、針對性的問題，以獲得有助於您繼續撰寫精彩故事的具體信息。問題應感覺自然且具有合作性。
+如果某個特定寶可夢與您的問題相關，請使用 {relevant_pokemon_name} 來提及它。
 
-Example Questions:
-- "To make the upcoming Pokémon battle more exciting, what special move would you like {relevant_pokemon_name} to use?"
-- "The story is leading towards a discovery. What kind of ancient ruin or hidden place do you imagine they find?"
-- "Before they reach the Crystal Cave, is there a particular obstacle or friendly character they should encounter in Whispering Woods?"
+示例問題：
+- "為了使即將到來的寶可夢對戰更精彩，您希望 {relevant_pokemon_name} 使用什麼特殊招式？"
+- "故事正朝著一個發現的方向發展。您想像他們會找到什麼樣的古代遺跡或隱藏地點？"
+- "在他們到達水晶洞穴之前，是否應該在低語森林中遇到某個特定障礙或友好角色？"
 
-Phrase your question clearly and directly. [/INST] Question for user:"""
+請清楚且直接地措辭您的問題。 [/INST] 使用者問題："""
 
-
-# --- Reviewer and Revision Prompts ---
 
 STORY_PLAN_REVIEW_REVISE_PROMPT_TEMPLATE = """\
-<s>[INST] You are an expert Pokémon Story Plan Editor.
-Your task is to review a generated story plan based on the user\'s original request and specific criteria.
-If the plan is already excellent, state that. If it needs improvement, provide constructive feedback and a revised, improved version of the story plan.
-Please use **Traditional Chinese (繁體中文)** with a **Taiwanese common phrasing and vocabulary (台灣常用風格)** for all outputs.
+<s>[INST] 您是一位專業的寶可夢故事計劃編輯。
+您的任務是根據使用者的原始請求和特定標準審查生成的故事計劃。
+如果計劃已經非常出色，請說明。如果需要改進，請提供建設性反饋和修訂後的故事計劃。
+請使用**繁體中文**，並使用**台灣常用措辭和詞彙（台灣常用風格）**進行所有輸出。
 
-User\'s Original Inputs:
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Pokémon Involved: {pokemon_names}
-- Story Synopsis/Idea: {synopsis}
-- Include Pokémon Abilities: {include_abilities}
+使用者的原始輸入：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 涉及的寶可夢：{pokemon_names}
+- 故事概要/想法：{synopsis}
+- 包含寶可夢能力：{include_abilities}
 
-Generated Story Plan to Review:
+生成的故事計劃以供審查：
 {story_plan_to_review}
 
-Review Criteria:
-1.  **Coherence and Logic**: Is the plan internally consistent and logical? Do the parts flow well?
-2.  **Alignment with User Inputs**: Does the plan accurately reflect the user\'s theme, genre, Pokémon, and synopsis?
-3.  **Pokémon Spirit**: Does the plan capture the essence of the Pokémon world (friendship, adventure, discovery, etc.)? Are Pokémon integrated naturally?
-4.  **Creativity and Engagement**: Is the plan original and interesting? Does it promise an engaging story?
-5.  **Structure and Detail**: Is the plan well-structured (e.g., 3-5 major sections)? Is there enough detail in each section to guide the writing of a ~1000-1500 word story?
-6.  **Genre Appropriateness**: Does the plan fit the specified Story Genre: {genre}?
-7.  **Ability Integration (if applicable)**: If \'Include Pokémon Abilities\' is Yes, does the plan create opportunities to showcase them?
+審查標準：
+1.  **連貫性和邏輯性**：計劃是否內部一致且合乎邏輯？各部分是否流暢？
+2.  **與使用者輸入的對齊**：計劃是否準確反映使用者的主題、類型、寶可夢和概要？
+3.  **寶可夢精神**：計劃是否捕捉到寶可夢世界的精髓（友誼、冒險、探索等）？寶可夢是否自然融入？
+4.  **創意和吸引力**：計劃是否原創且有趣？是否承諾一個引人入勝的故事？
+5.  **結構和細節**：計劃是否結構良好（例如，3-5個主要部分）？每部分是否有足夠的細節以指導撰寫約1000-1500字的故事？
+6.  **類型適切性**：計劃是否符合指定的故事類型：{genre}？
+7.  **能力整合（如適用）**：如果「包含寶可夢能力」為是，計劃是否創造了展示它們的機會？
 
-Output Format:
-Provide your response in two parts:
-1.  **評估回饋:** Start with this exact phrase. Briefly summarize your findings (1-3 sentences).
-2.  **修訂後故事大綱:** Start with this exact phrase. Provide the full, revised story plan. If no revisions were necessary and the original plan is excellent, you can simply re-state the original plan here or state "原故事大綱已達標，無需修訂。".
+輸出格式：
+請分兩部分提供您的回應：
+1.  **評估回饋：**以此確切短語開頭。簡要總結您的發現（1-3句）。
+2.  **修訂後故事大綱：**以此確切短語開頭。提供完整的修訂後故事計劃。如果不需要修訂且原計劃非常出色，您可以在此重新陳述原計劃或說明「原故事大綱已達標，無需修訂。」。
 
-Example of a good output structure:
-評估回饋: 此計畫在創意方面表現出色，但第二部分的邏輯稍有欠缺，且未充分利用 {pokemon_names} 的特性。
-修訂後故事大綱:
+良好輸出結構示例：
+評估回饋：此計畫在創意方面表現出色，但第二部分的邏輯稍有欠缺，且未充分利用 {pokemon_names} 的特性。
+修訂後故事大綱：
 *   第一部分：[修訂後的第一部分內容]
 *   第二部分：[修訂後的第二部分內容，解決了邏輯問題並加入特性展現]
 *   ... (依此類推)
 
-Now, review the provided story plan.
+現在審查提供的故事計劃。
 [/INST]
 """
 
 FULL_STORY_REVIEW_REVISE_PROMPT_TEMPLATE = """\
-<s>[INST] You are a meticulous Pokémon Story Editor.
-Your task is to review a generated full story based on the user\'s original request, the guiding story plan, and specific quality criteria.
-If the story is already excellent, state that. If it needs improvement, provide constructive feedback and a revised, improved version of the story.
-Please use **Traditional Chinese (繁體中文)** with a **Taiwanese common phrasing and vocabulary (台灣常用風格)** for all outputs.
+<s>[INST] 您是一位一絲不苟的寶可夢故事編輯。
+您的任務是根據使用者的原始請求、指導故事計劃和特定質量標準審查生成的完整故事。
+如果故事已經非常出色，請說明。如果需要改進，請提供建設性反饋和修訂後的故事。
+請使用**繁體中文**，並使用**台灣常用措辭和詞彙（台灣常用風格）**進行所有輸出。
 
-User\'s Original Inputs:
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Pokémon Involved: {pokemon_names}
-- Story Synopsis/Idea: {synopsis}
-- Include Pokémon Abilities: {include_abilities}
+使用者的原始輸入：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 涉及的寶可夢：{pokemon_names}
+- 故事概要/想法：{synopsis}
+- 包含寶可夢能力：{include_abilities}
 
-Guiding Story Plan:
+指導故事計劃：
 {story_plan}
 
-Generated Full Story to Review:
+生成的完整故事以供審查：
 {full_story_to_review}
 
-Review Criteria:
-1.  **Adherence to Plan**: Does the story faithfully follow and expand upon the provided Guiding Story Plan?
-2.  **Engagement and Pacing**: Is the story captivating? Is the pacing appropriate for the genre and length?
-3.  **Language and Style**: Is the story written in fluent Traditional Chinese (Taiwanese style)? Is the descriptive language vivid? Is it "showing" more than "telling"?
-4.  **Genre Consistency**: Does the story strongly reflect the specified Story Genre: {genre}?
-5.  **Characterization**: Are Pokémon (and any human characters) portrayed effectively through their actions, thoughts, and dialogue?
-6.  **Pokémon Integration**: Are Pokémon abilities, traits, and the world\'s atmosphere naturally and correctly integrated? (Refer to {pokemon_names} and {include_abilities})
-7.  **Coherence and Clarity**: Is the narrative clear, logical, and easy to follow?
-8.  **Completeness and Word Count**: Does the story feel complete (beginning, middle, end)? Is it roughly in the 1000-1500 word range or appropriately longer if needed?
-9.  **Emotional Impact (if applicable)**: Does the story evoke the intended emotions based on its theme and genre?
+審查標準：
+1.  **遵循計劃**：故事是否忠實遵循並擴展提供的指導故事計劃？
+2.  **吸引力和節奏**：故事是否引人入勝？節奏是否適合類型和字數？
+3.  **語言和風格**：故事是否以流利的繁體中文（台灣風格）撰寫？描述性語言是否生動？是否「展示」多於「陳述」？
+4.  **類型一致性**：故事是否強烈反映指定的故事類型：{genre}？
+5.  **角色塑造**：寶可夢（以及任何人類角色）是否通過行動、思想和對話有效地描繪？
+6.  **寶可夢整合**：寶可夢能力、特徵和世界氛圍是否自然且正確地整合？（參考 {pokemon_names} 和 {include_abilities}）
+7.  **連貫性和清晰性**：敘事是否清晰、合乎邏輯且易於理解？
+8.  **完整性和字數**：故事是否感覺完整（開端、中間、結尾）？字數是否約在1000-1500字範圍內或適當更長以滿足需要？
+9.  **情感影響（如適用）**：故事是否根據其主題和類型引發預期的情感？
 
-Output Format:
-Provide your response in two parts:
-1.  **評估回饋:** Start with this exact phrase. Briefly summarize your findings (1-3 sentences).
-2.  **修訂後完整故事:** Start with this exact phrase. Provide the full, revised story. If no revisions were necessary and the original story is excellent, you can simply re-state the original story here or state "原故完整事已達標，無需修訂。".
+輸出格式：
+請分兩部分提供您的回應：
+1.  **評估回饋：**以此確切短語開頭。簡要總結您的發現（1-3句）。
+2.  **修訂後完整故事：**以此確切短語開頭。提供完整的修訂後故事。如果不需要修訂且原故事非常出色，您可以在此重新陳述原故事或說明「原故完整事已達標，無需修訂。」。
 
-Example of a good output structure:
-評估回饋: 故事整體流暢，但高潮部分略顯倉促，皮卡丘的勇敢可以再多加著墨。
-修訂後完整故事:
+良好輸出結構示例：
+評估回饋：故事整體流暢，但高潮部分略顯倉促，皮卡丘的勇敢可以再多加著墨。
+修訂後完整故事：
 [修訂後的完整故事內容，高潮部分已加強...]
 
-Now, review the provided full story.
+現在審查提供的完整故事。
 [/INST]
 """
 
-# --- Advanced CoT Stage Prompts ---
-
 SYNOPSIS_ELABORATION_PROMPT_TEMPLATE = """\
-<s>[INST] You are a Creative Brainstorming Partner for Pokémon story ideas.
-Based on the user\'s initial, possibly brief, theme and synopsis, your task is to propose 3-4 distinct and engaging elaborations or alternative directions. Each elaboration should offer a unique angle, potential conflict, or interesting subplot.
-Please use **Traditional Chinese (繁體中文)** with a **Taiwanese common phrasing and vocabulary (台灣常用風格)**.
+<s>[INST] 您是一位寶可夢故事創意腦力激盪夥伴。
+根據使用者的初步主題和概要（可能較簡略），您的任務是提出3-4個不同且引人入勝的擴展或替代方向。每個擴展應提供獨特的角度、潛在衝突或有趣的子情節。
+請使用**繁體中文**，並使用**台灣常用措辭和詞彙（台灣常用風格）**。
 
-User\'s Initial Inputs:
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Pokémon Involved: {pokemon_names}
-- Story Synopsis/Idea: {synopsis}
+使用者的初步輸入：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 涉及的寶可夢：{pokemon_names}
+- 故事概要/想法：{synopsis}
 
-Task: Provide 3-4 numbered elaborations. Each should be a concise paragraph.
-Focus on creativity, adherence to the Pokémon world, and potential for a compelling story.
+任務：提供3-4個編號的擴展。每個擴展應為簡潔段落。
+專注於創意、遵循寶可夢世界，以及具有吸引力的故事潛力。
 
-Example Output Format:
+良好輸出格式示例：
 1.  **方向一：[標題]** - [詳細闡述第一種可能性，例如強調某個寶可夢的秘密，或引入一個意外的外部因素...]
 2.  **方向二：[標題]** - [詳細闡述第二種可能性，例如轉變故事的核心衝突，或探索一個不同的情感主題...]
 3.  **方向三：[標題]** - [詳細闡述第三種可能性，例如聚焦於寶可夢之間的關係發展，或設定一個更宏大的背景...]
 
 [/INST]
-Elaborated Synopsis Options:"""
+擴展的故事概要選項："""
 
 CHARACTER_DEVELOPMENT_PROMPT_TEMPLATE = """\
-<s>[INST] You are a Pokémon Character Analyst and Biographer.
-Given the main Pokémon, the story theme, genre, and synopsis, your task is to create a richer profile for each key Pokémon involved. This profile should help in writing a more engaging story.
-Please use **Traditional Chinese (繁體中文)** with a **Taiwanese common phrasing and vocabulary (台灣常用風格)**.
+<s>[INST] 您是一位寶可夢角色分析師和傳記作者。
+根據主要寶可夢、故事主題、類型和概要，您的任務是為每個關鍵寶可夢創建更豐富的角色檔案。此檔案應有助於撰寫更引人入勝的故事。
+請使用**繁體中文**，並使用**台灣常用措辭和詞彙（台灣常用風格）**。
 
-User\'s Inputs:
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Pokémon Involved: {pokemon_names} (Comma-separated, e.g., Pikachu, 伊布)
-- Story Synopsis/Idea: {synopsis}
-- Optional Existing Story Plan (for context): {story_plan}
+使用者的輸入：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 涉及的寶可夢：{pokemon_names}（逗號分隔，例如：皮卡丘, 伊布）
+- 故事概要/想法：{synopsis}
+- 可選的現有故事計劃（作為背景）：{story_plan}
 
-For each Pokémon in "Pokémon Involved" (up to 3 for brevity if many are listed, focus on the first few):
--   **名稱:** [寶可夢中文名]
--   **性格特點:** [描述其主要性格，例如：勇敢但魯莽、聰明但多疑、害羞卻善良等。]
--   **核心動機:** [在這個故事背景下，牠最渴望達成什麼？例如：保護夥伴、證明自己、尋找真相、渴望歸屬感等。]
--   **潛在內心衝突:** [牠可能面臨的內心掙扎或兩難，例如：忠誠與個人慾望的衝突、恐懼與責任的拉扯。]
--   **與其他角色可能的關係:** [簡述牠與故事中其他指定寶可夢或潛在人類角色的關係基調，例如：競爭對手、摯友、導師、被保護者。]
--   **一句代表性的內心獨白 (可選):** [一句能展現其當下心境或個性的話。]
+對於「涉及的寶可夢」中的每個寶可夢（最多3個以簡潔為限，如果列出很多，請專注於前幾個）：
+-   **名稱：** [寶可夢中文名]
+-   **性格特點：** [描述其主要性格，例如：勇敢但魯莽、聰明但多疑、害羞卻善良等。]
+-   **核心動機：** [在這個故事背景下，牠最渴望達成什麼？例如：保護夥伴、證明自己、尋找真相、渴望歸屬感等。]
+-   **潛在內心衝突：** [牠可能面臨的內心掙扎或兩難，例如：忠誠與個人慾望的衝突、恐懼與責任的拉扯。]
+-   **與其他角色可能的關係：** [簡述牠與故事中其他指定寶可夢或潛在人類角色的關係基調，例如：競爭對手、摯友、導師、被保護者。]
+-   **一句代表性的內心獨白（可選）：** [一句能展現其當下心境或個性的話。]
 
-Output the profiles clearly, one after another.
+清楚地逐一輸出檔案。
 [/INST]
-Detailed Pokémon Profiles:"""
+詳細的寶可夢角色檔案："""
 
 SETTING_DETAIL_PROMPT_TEMPLATE = """\
-<s>[INST] You are a Pokémon World Builder and Scene Designer.
-Based on the user\'s story theme, genre, and synopsis, your task is to describe a key potential setting in rich detail. This will help immerse the reader in the story.
-Please use **Traditional Chinese (繁體中文)** with a **Taiwanese common phrasing and vocabulary (台灣常用風格)**.
+<s>[INST] 您是一位寶可夢世界建造者和場景設計師。
+根據使用者的故事主題、類型和概要，您的任務是詳細描述一個關鍵的潛在場景。這將有助於使讀者沉浸於故事中。
+請使用**繁體中文**，並使用**台灣常用措辭和詞彙（台灣常用風格）**。
 
-User\'s Inputs:
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Story Synopsis/Idea: {synopsis}
-- Optional Existing Story Plan (for context): {story_plan}
+使用者的輸入：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 故事概要/想法：{synopsis}
+- 可選的現有故事計劃（作為背景）：{story_plan}
 
-Task: Describe ONE key setting implied by or suitable for the story. Consider the following aspects:
--   **設定名稱 (可自創):** 例如：迷霧森林的深處、廢棄發電廠的秘密實驗室、星晶洞穴的閃爍之心。
--   **整體氛圍:** 描述這個地方給人的感覺（例如：神秘、詭譎、寧靜、莊嚴、破敗、生機勃勃）。
--   **視覺細節:** 有哪些顯著的景觀、建築、植被、光影效果？
--   **聽覺/嗅覺/觸覺細節 (若適用):** 這個地方有哪些獨特的聲音、氣味或體感？
--   **與故事的關聯性:** 這個設定如何與主題、概要或潛在情節產生連結？它可能帶來什麼樣的機遇或挑戰？
--   **潛在的寶可夢棲息地:** 哪些類型的寶可夢可能生活在這裡 (與使用者指定的寶可夢無關，純粹是環境描述)？
+任務：描述故事中暗示或適合的一個關鍵場景。考慮以下方面：
+-   **設定名稱（可自創）：** 例如：迷霧森林的深處、廢棄發電廠的秘密實驗室、星晶洞穴的閃爍之心。
+-   **整體氛圍：** 描述這個地方給人的感覺（例如：神秘、詭譎、寧靜、莊嚴、破敗、生機勃勃）。
+-   **視覺細節：** 有哪些顯著的景觀、建築、植被、光影效果？
+-   **聽覺/嗅覺/觸覺細節（若適用）：** 這個地方有哪些獨特的聲音、氣味或體感？
+-   **與故事的關聯性：** 這個設定如何與主題、概要或潛在情節產生連結？它可能帶來什麼樣的機遇或挑戰？
+-   **潛在的寶可夢棲息地：** 哪些類型的寶可夢可能生活在這裡（與使用者指定的寶可夢無關，純粹是環境描述）？
 
-Provide a descriptive paragraph (or a few) for the setting.
+提供一段（或幾段）描述性文字來描繪場景。
 [/INST]
-Detailed Setting Description:"""
+詳細的場景描述："""
 
 PLOT_TWIST_SUGGESTION_PROMPT_TEMPLATE = """\
-<s>[INST] You are a Master of Plot Twists for Pokémon stories.
-Given a story plan (or a specific section of it), your task is to suggest 2-3 intriguing and unexpected plot twists that could make the story more exciting or profound.
-Please use **Traditional Chinese (繁體中文)** with a **Taiwanese common phrasing and vocabulary (台灣常用風格)**.
+<s>[INST] 您是一位寶可夢故事情節轉折大師。
+根據故事計劃（或其中的特定部分），您的任務是提出2-3個引人入勝且出乎意料的情節轉折，這些轉折可以使故事更精彩或更深刻。
+請使用**繁體中文**，並使用**台灣常用措辭和詞彙（台灣常用風格）**。
 
-Guiding Story Plan:
+指導故事計劃：
 {story_plan}
 
-Optional: Specific section of the plan to focus on for twists (if empty, consider twists for the overall plan or climax):
+可選：專注於計劃中的特定部分以進行轉折（如果為空，請考慮整體計劃或高潮的轉折）：
 {section_to_twist}
 
-Task: Provide 2-3 numbered plot twist suggestions. Each suggestion should be concise and explain how it changes the story\'s direction or meaning.
-Focus on twists that are clever, fit the Pokémon world, and align generally with the theme and genre (unless the twist is *about* subverting the genre).
+任務：提供2-3個編號的情節轉折建議。每個建議應簡潔並解釋其如何改變故事的方向或意義。
+專注於巧妙、符合寶可夢世界且大致與主題和類型一致的轉折（除非轉折是*關於*顛覆類型）。
 
-Example Output Format:
+良好輸出格式示例：
 1.  **驚天逆轉：[標題]** - [詳細闡述轉折點。例如：原以為的盟友其實是幕後黑手，目標是利用主角的寶可夢完成某個古老的儀式...]
 2.  **意想不到的援手：[標題]** - [詳細闡述轉折點。例如：在主角群陷入絕境時，一個之前看似微不足道或敵對的角色/寶可夢突然出現，並提供了關鍵的幫助，其動機令人意外...]
 3.  **真相的另一面：[標題]** - [詳細闡述轉折點。例如：主角一直追尋的目標或認定的事實，其實有著不為人知的另一面，這個發現顛覆了主角的認知...]
 
 [/INST]
-Plot Twist Suggestions:"""
+情節轉折建議："""
 
 STYLE_TONE_TUNING_PROMPT_TEMPLATE = """\
-<s>[INST] You are a Literary Style Emulator specializing in Pokémon narratives.
-Your task is to rewrite a given piece of Pokémon story text to match a new desired style or tone, while preserving the core events and characters.
-Please use **Traditional Chinese (繁體中文)** with a **Taiwanese common phrasing and vocabulary (台灣常用風格)** for the rewritten text.
+<s>[INST] 您是一位專精於寶可夢敘事的文學風格模擬器。
+您的任務是重寫給定的寶可夢故事文本，以匹配新的期望風格或語氣，同時保留核心事件和角色。
+請使用**繁體中文**，並使用**台灣常用措辭和詞彙（台灣常用風格）**進行重寫。
 
-Original Story Text (or segment):
+原始故事文本（或片段）：
 {story_text_to_tune}
 
-Original Story Context (for reference):
-- Story Theme: {theme}
-- Story Genre: {genre}
+原始故事背景（供參考）：
+- 故事主題：{theme}
+- 故事類型：{genre}
 
-Desired New Style/Tone: {desired_style_tone} (e.g., \"更加懸疑緊張\", \"更幽默詼諧\", \"更具史詩感\", \"更溫馨感人\", \"以小智的口吻來旁白\")
+期望的新風格/語氣：{desired_style_tone}（例如，「更加懸疑緊張」、「更幽默詼諧」、「更具史詩感」、「更溫馨感人」、「以小智的口吻來旁白」）
 
-Task: Rewrite the provided story text according to the desired new style/tone. Ensure the main plot points from the original text are maintained.
-Focus on word choice, sentence structure, pacing, and descriptive language to achieve the target style/tone.
+任務：根據期望的新風格/語氣重寫提供的故事文本。確保保留原始文本中的主要情節點。
+專注於詞彙選擇、句子結構、節奏和描述性語言以實現目標風格/語氣。
 
 [/INST]
-Rewritten Story Text (in {desired_style_tone} style/tone):"""
+重寫的故事文本（以{desired_style_tone}風格/語氣）："""
 
 STORY_BRANCHING_SUGGESTION_PROMPT_TEMPLATE = """\
-<s>[INST] You are a Pokémon Story Navigator.
-Given the current segment of a story, your task is to propose 2-3 distinct and plausible next scenes or developments, representing different choices or paths the story could take.
-Please use **Traditional Chinese (繁體中文)** with a **Taiwanese common phrasing and vocabulary (台灣常用風格)**.
+<s>[INST] 您是一位寶可夢故事導航員。
+根據故事的當前片段，您的任務是提出2-3個不同且合理的下一場景或發展，代表故事可能採取的不同選擇或路徑。
+請使用**繁體中文**，並使用**台灣常用措辭和詞彙（台灣常用風格）**。
 
-Current Story Segment:
+當前故事片段：
 {current_story_segment}
 
-Original Story Context (for reference):
-- Story Theme: {theme}
-- Story Genre: {genre}
-- Optional Guiding Story Plan: {story_plan}
+原始故事背景（供參考）：
+- 故事主題：{theme}
+- 故事類型：{genre}
+- 可選的指導故事計劃：{story_plan}
 
-Task: Provide 2-3 numbered suggestions for the *very next* scene or a short sequence of events. Each suggestion should be a paragraph describing what could happen next.
-These branches should feel like natural continuations yet offer meaningful differences in outcome or focus.
+任務：提供2-3個編號的*下一個*場景或短事件序列的建議。每個建議應為描述可能接下來發生的事情的段落。
+這些分支應感覺像自然的延續，但提供結果或重點上的有意義差異。
 
-Example Output Format:
+良好輸出格式示例：
 1.  **選項一：[簡短標題]** - [描述第一種可能的後續發展，例如：主角決定直接面對挑戰，導致一場激烈的寶可夢對戰...]
 2.  **選項二：[簡短標題]** - [描述第二種可能的後續發展，例如：主角選擇尋找盟友，引發一段探索或社交互動的劇情...]
 3.  **選項三：[簡短標題]** - [描述第三種可能的後續發展，例如：一個意外的發現改變了當前的局勢，迫使主角重新評估計畫...]
 
 [/INST]
-Suggested Story Branches:"""
+建議的故事分支："""
 
 
-# Helper function to easily format prompts (optional, but can be useful)
 def format_prompt(template: str, **kwargs: Any) -> str:
-    """
-    Formats a prompt template with the given keyword arguments.
-
-    Args:
-        template: The prompt template string (e.g., STORY_PLANNING_PROMPT_TEMPLATE).
-        **kwargs: Keyword arguments to fill into the template's placeholders.
-
-    Returns:
-        The formatted prompt string.
-
-    Raises:
-        KeyError: If a placeholder in the template is not provided in kwargs.
-    """
     try:
         return template.format(**kwargs)
     except KeyError as e:
-        # Add more context to the KeyError if a placeholder is missing.
         missing_key = str(e)
         raise KeyError(
-            f"Placeholder {missing_key} in the prompt template was not provided. "
-            f"Available placeholders: {{...}} in template. Provided kwargs: {list(kwargs.keys())}"
+            f"提示範本中的佔位符 {missing_key} 未提供。"
+            f"可用佔位符：範本中的 {{...}}。提供的 kwargs：{list(kwargs.keys())}"
         ) from e
-
-if __name__ == "__main__":
-    # Example Usage of the templates and formatter
-    print("--- Testing Prompt Templates ---")
-
-    # Test Story Planning Prompt
-    try:
-        plan_prompt = format_prompt(
-            STORY_PLANNING_PROMPT_TEMPLATE,
-            theme="An unexpected friendship",
-            genre="Adventure",
-            pokemon_names="Pikachu, Eevee",
-            synopsis="A Pikachu and an Eevee from rival trainer groups get lost together during a storm and must learn to cooperate to find their way back.",
-            include_abilities="Yes"
-        )
-        print("\nFormatted Story Planning Prompt:")
-        print(plan_prompt)
-    except KeyError as e:
-        print(f"Error formatting plan_prompt: {e}")
-
-    # Test Story Generation from Plan Prompt
-    try:
-        example_plan = """
-1. Introduction: Pikachu and Eevee are separated from their trainers during a fierce thunderstorm in Viridian Forest.
-2. Inciting Incident: They encounter a territorial Beedrill, forcing them to flee together.
-3. Rising Action: They navigate through difficult terrain, share scarce berries, and protect each other from minor threats, slowly building trust.
-4. Climax: They find a raging river blocking their path. Pikachu uses its electricity to signal a passing Fearow, while Eevee's agility helps them find a narrow log to cross.
-5. Falling Action: The Fearow alerts nearby Pokémon Rangers, who are searching for them.
-6. Resolution: They are reunited with their trainers, who are overjoyed. The trainers, seeing their Pokémon's newfound bond, decide to become friends too.
-        """
-        story_gen_prompt = format_prompt(
-            STORY_GENERATION_FROM_PLAN_PROMPT_TEMPLATE,
-            story_plan=example_plan,
-            theme="An unexpected friendship",
-            genre="Adventure",
-            pokemon_names="Pikachu, Eevee",
-            synopsis="A Pikachu and an Eevee from rival trainer groups get lost together during a storm and must learn to cooperate to find their way back.",
-            include_abilities="Yes"
-        )
-        print("\nFormatted Story Generation from Plan Prompt:")
-        print(story_gen_prompt)
-    except KeyError as e:
-        print(f"Error formatting story_gen_prompt: {e}")
-
-    # Test Input Refinement Suggestion Prompt
-    try:
-        # pokemon_names_for_suggestion_context would be derived from pokemon_names by the calling code
-        # e.g. if pokemon_names is "Pikachu, Eevee", this could be "Pikachu or Eevee" or just "the Pokémon"
-        refinement_prompt = format_prompt(
-            INPUT_REFINEMENT_SUGGESTION_PROMPT_TEMPLATE,
-            theme="A mysterious discovery",
-            genre="Mystery",
-            pokemon_names="Lucario",
-            pokemon_names_for_suggestion_context="Lucario",
-            synopsis="Lucario finds an ancient artifact.",
-            include_abilities="No"
-        )
-        print("\nFormatted Input Refinement Suggestion Prompt:")
-        print(refinement_prompt)
-    except KeyError as e:
-        print(f"Error formatting refinement_prompt: {e}")
-
-    # Test Agent Clarification Prompt
-    try:
-        clarification_prompt = format_prompt(
-            AGENT_CLARIFICATION_PROMPT_TEMPLATE,
-            theme="A race against time",
-            genre="Sci-Fi",
-            pokemon_names="Rapidash, Dodrio",
-            synopsis="Rapidash and Dodrio are competing in a cross-country race to deliver a vital message.",
-            current_story_context="Rapidash and Dodrio have just overcome a muddy swamp and are now facing a steep mountain path. The message they carry is for Professor Oak, warning him of Team Rocket\'s latest scheme.",
-            relevant_pokemon_name="Rapidash"
-        )
-        print("\nFormatted Agent Clarification Prompt:")
-        print(clarification_prompt)
-    except KeyError as e:
-        print(f"Error formatting clarification_prompt: {e}")
-
-    print("\n--- Prompt Template Testing Complete ---") 
