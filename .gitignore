@@ -211,3 +211,5 @@ poetry.lock
 # Rye
 .rye/
 *.cbor
+
+ui-design-creation.mdc
