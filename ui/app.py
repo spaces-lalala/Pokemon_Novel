@@ -285,6 +285,99 @@ custom_css = """
     --shadow-focus-ring: rgba(225, 75, 22, 0.4); /* Fire orange focus ring */
 }
 
+/* 火球鼠吉祥物圖片樣式 */
+.cyndaquil-mascot-image {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* 強制所有子元素的 margin 和 padding 為 0 */
+.cyndaquil-mascot-image,
+.cyndaquil-mascot-image * {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.cyndaquil-mascot-image:hover {
+    transform: scale(1.05) !important;
+    filter: drop-shadow(0 0 15px rgba(225, 75, 22, 0.4)) !important;
+}
+
+/* 移除所有圖片相關的邊框和控制項 */
+.cyndaquil-mascot-image .image-button-row,
+.cyndaquil-mascot-image .download-button,
+.cyndaquil-mascot-image .fullscreen-button,
+.cyndaquil-mascot-image button[aria-label="Download"],
+.cyndaquil-mascot-image button[title="View in full screen"],
+.cyndaquil-mascot-image .gr-button-group,
+.cyndaquil-mascot-image .image-controls {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* 移除圖片容器的所有樣式 */
+.cyndaquil-mascot-image .image-container,
+.cyndaquil-mascot-image .gr-image,
+.cyndaquil-mascot-image > div,
+.cyndaquil-mascot-image [data-testid="image"] {
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* 確保圖片本身無邊框且無間距 */
+.cyndaquil-mascot-image img {
+    border: none !important;
+    border-radius: 50% !important;
+    box-shadow: none !important;
+    outline: none !important;
+    background: transparent !important;
+    filter: drop-shadow(0 0 10px rgba(225, 75, 22, 0.3)) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+}
+
+/* 移除任何可能的懸停效果邊框和間距 */
+.cyndaquil-mascot-image *:hover,
+.cyndaquil-mascot-image *:focus,
+.cyndaquil-mascot-image *:active {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* 確保圖片容器沒有預設的 Gradio 樣式 */
+.cyndaquil-mascot-image .gr-block,
+.cyndaquil-mascot-image .gr-form,
+.cyndaquil-mascot-image .gr-panel {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+/* 頂部標題行樣式 */
+.pc-header-row {
+    margin-bottom: 20px !important;
+    padding: 15px !important;
+    background: linear-gradient(135deg, var(--cyndaquil-card-bg), var(--cyndaquil-bg-dark)) !important;
+    border-radius: var(--border-radius-main) !important;
+    border: 1px solid var(--cyndaquil-card-border) !important;
+    align-items: center !important;
+    box-shadow: 0 5px 15px var(--cyndaquil-card-shadow) !important;
+}
+
 html, body {
     color: var(--cyndaquil-text-primary) !important; 
 }
@@ -606,11 +699,28 @@ body, * {
 """
 
 with gr.Blocks(theme=None, css=custom_css, title="火球鼠の熱焰故事工房", head=custom_head) as demo:
-    gr.Markdown("""
-    # 🔥 火球鼠の熱焰故事工房 ☄️📖
-    
-    與火球鼠一起，用背上的火焰點燃無限的創作靈感，編織獨一無二的寶可夢冒險故事！
-    """, elem_classes="app-title-markdown") # Main title
+    # 頂部標題區域，包含火球鼠圖片
+    with gr.Row(elem_classes="pc-header-row"):
+        with gr.Column(scale=5):
+            gr.Markdown("""
+            # 🔥 火球鼠の熱焰故事工房 ✨
+            
+            與火球鼠一起，用背上的火焰點燃無限的創作靈感，編織獨一無二的寶可夢冒險故事！
+            """, elem_classes="app-title-markdown") # Main title
+        with gr.Column(scale=1, min_width=120):
+            # 火球鼠圖片
+            cyndaquil_image = gr.Image(
+                value=os.path.join(os.path.dirname(__file__), "..", "cyndaquil.png"),
+                label=None,
+                show_label=False,
+                container=False,
+                width=150,  # 從 100 放大到 150 (1.5倍)
+                height=150, # 從 100 放大到 150 (1.5倍)
+                interactive=False,
+                show_download_button=False,
+                show_fullscreen_button=False,
+                elem_classes="cyndaquil-mascot-image"
+            )
 
     # --- 頂部核心輸入區 (Card) ---
     with gr.Column(elem_classes="pc-card pc-main-inputs-card"): # Added pc-card
