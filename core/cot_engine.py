@@ -1,4 +1,5 @@
 from typing import Dict, Any, Optional, Tuple, TypedDict
+import asyncio
 
 from core.llm_services import LLMService, OpenAIConfigError
 from core import prompt_templates
@@ -12,38 +13,69 @@ class ReviewerOutput(TypedDict):
     revised_content: str
 
 def _parse_reviewer_output(raw_output: str, original_content_if_no_revision: str) -> ReviewerOutput:
-    feedback_marker = "評估回饋:"
-    content_marker = "修訂後故事大綱:"
-    if content_marker not in raw_output:
-        content_marker = "修訂後完整故事:"
+    """
+    解析審查者輸出，支援新舊格式，處理中英文冒號
+    """
+    # 支援中英文冒號的標記
+    feedback_markers = ["評估回饋：", "評估回饋:"]
+    content_markers = ["修訂後故事大綱：", "修訂後故事大綱:", "修訂後完整故事：", "修訂後完整故事:"]
 
-    feedback = ""
-    revised_content = original_content_if_no_revision
-
-    feedback_start = raw_output.find(feedback_marker)
-    content_start = raw_output.find(content_marker)
-
-    if feedback_start != -1:
-        if content_start != -1:
-            feedback = raw_output[feedback_start + len(feedback_marker):content_start].strip()
-        else:
-            feedback = raw_output[feedback_start + len(feedback_marker):].strip()
+    # 尋找標記位置
+    feedback_start = -1
+    feedback_marker_len = 0
+    for marker in feedback_markers:
+        pos = raw_output.find(marker)
+        if pos != -1:
+            feedback_start = pos
+            feedback_marker_len = len(marker)
+            break
     
-    if content_start != -1:
-        parsed_content = raw_output[content_start + len(content_marker):].strip()
-        if parsed_content and not parsed_content.startswith("原故事大綱已達標") and not parsed_content.startswith("原故完整事已達標"):
-            revised_content = parsed_content
-        elif parsed_content.startswith("原故事大綱已達標") or parsed_content.startswith("原故完整事已達標"):
-            if not feedback:
-                feedback = "審閱者認為內容已達標，無需修訂。"
-    elif feedback_start == -1:
+    content_start = -1
+    content_marker_len = 0
+    for marker in content_markers:
+        pos = raw_output.find(marker)
+        if pos != -1:
+            content_start = pos
+            content_marker_len = len(marker)
+            break
+    
+    # 如果找到任何標記，按標記格式處理
+    if feedback_start != -1 or content_start != -1:
+        feedback = ""
+        revised_content = original_content_if_no_revision
+
+        # 提取評估回饋
+        if feedback_start != -1:
+            if content_start != -1:
+                feedback = raw_output[feedback_start + feedback_marker_len:content_start].strip()
+            else:
+                feedback = raw_output[feedback_start + feedback_marker_len:].strip()
+        
+        # 提取修訂後內容
+        if content_start != -1:
+            parsed_content = raw_output[content_start + content_marker_len:].strip()
+            if parsed_content and not parsed_content.startswith("原故事大綱已達標") and not parsed_content.startswith("原故完整事已達標"):
+                revised_content = parsed_content
+            elif parsed_content.startswith("原故事大綱已達標") or parsed_content.startswith("原故完整事已達標"):
+                revised_content = original_content_if_no_revision
+        elif feedback_start != -1 and content_start == -1:
+            # 只有評估回饋，沒有修訂內容，使用原始內容
+            revised_content = original_content_if_no_revision
+                
+        return ReviewerOutput(feedback=feedback, revised_content=revised_content)
+    
+    # 沒有標記格式：直接使用整個輸出作為故事內容
+    else:
         if raw_output.strip():
-            revised_content = raw_output.strip()
-            feedback = "審閱者未提供明確回饋標記，但提供了內容。"
+            # 檢查是否是 "已達標" 類型的回應
+            if "已達標" in raw_output or "無需修訂" in raw_output:
+                return ReviewerOutput(feedback="原內容已達標", revised_content=original_content_if_no_revision)
+            else:
+                # 直接使用 LLM 輸出作為修訂後的故事內容
+                return ReviewerOutput(feedback="直接修訂", revised_content=raw_output.strip())
         else:
-            feedback = "審閱者輸出格式不正確或為空。"
-            
-    return ReviewerOutput(feedback=feedback, revised_content=revised_content)
+            # 如果輸出為空，使用原始內容
+            return ReviewerOutput(feedback="空回應", revised_content=original_content_if_no_revision)
 
 class CoTEngine:
 
@@ -53,8 +85,7 @@ class CoTEngine:
     async def _generate_story_plan_initial(self, theme: str, genre: str, pokemon_names: str, synopsis: str, include_abilities: bool) -> str:
         try:
             formatted_pokemon_names = format_pokemon_names_for_prompt(pokemon_names)
-            plan_prompt = prompt_templates.format_prompt(
-                prompt_templates.STORY_PLANNING_PROMPT_TEMPLATE,
+            plan_prompt = prompt_templates.STORY_PLANNING_PROMPT_TEMPLATE.format(
                 theme=theme,
                 genre=genre,
                 pokemon_names=formatted_pokemon_names,
@@ -78,8 +109,7 @@ class CoTEngine:
     ) -> ReviewerOutput:
         try:
             formatted_pokemon_names_for_review = format_pokemon_names_for_prompt(pokemon_names)
-            review_prompt = prompt_templates.format_prompt(
-                prompt_templates.STORY_PLAN_REVIEW_REVISE_PROMPT_TEMPLATE,
+            review_prompt = prompt_templates.STORY_PLAN_REVIEW_REVISE_PROMPT_TEMPLATE.format(
                 theme=theme, genre=genre, pokemon_names=formatted_pokemon_names_for_review,
                 synopsis=synopsis, include_abilities="是" if include_abilities else "否",
                 story_plan_to_review=story_plan_to_review
@@ -113,13 +143,11 @@ class CoTEngine:
         story_plan: str, include_abilities: bool
     ) -> str:
         try:
-            # 先將寶可夢名稱格式化為「中文名 (英文名)」
             formatted_pokemon_names = format_pokemon_names_for_prompt(pokemon_names)
-            story_prompt = prompt_templates.format_prompt(
-                prompt_templates.STORY_GENERATION_FROM_PLAN_PROMPT_TEMPLATE,
+            story_prompt = prompt_templates.STORY_GENERATION_FROM_PLAN_PROMPT_TEMPLATE.format(
                 story_plan=story_plan, theme=theme, genre=genre, 
                 pokemon_names=formatted_pokemon_names, synopsis=synopsis,
-                include_abilities="Yes" if include_abilities else "No"
+                include_abilities="是" if include_abilities else "否"
             )
             full_story = await self.llm_service.generate_text(story_prompt, max_tokens=4096, temperature=0.75)
             if not full_story or full_story.strip() == "":
@@ -138,10 +166,9 @@ class CoTEngine:
     ) -> ReviewerOutput:
         try:
             formatted_pokemon_names_for_review = format_pokemon_names_for_prompt(pokemon_names)
-            review_prompt = prompt_templates.format_prompt(
-                prompt_templates.FULL_STORY_REVIEW_REVISE_PROMPT_TEMPLATE,
+            review_prompt = prompt_templates.FULL_STORY_REVIEW_REVISE_PROMPT_TEMPLATE.format(
                 theme=theme, genre=genre, pokemon_names=formatted_pokemon_names_for_review,
-                synopsis=synopsis,                include_abilities="是" if include_abilities else "否",
+                synopsis=synopsis, include_abilities="是" if include_abilities else "否",
                 story_plan=story_plan,
                 full_story_to_review=full_story_to_review
             )
@@ -156,6 +183,7 @@ class CoTEngine:
             raise StoryGenerationError(f"完整故事評論期間發生 LLM 配置錯誤：{e}") from e
         except KeyError as e:
             raise StoryGenerationError(f"完整故事評論期間發生提詞格式錯誤：{e}") from e
+        except Exception as e:
             raise StoryGenerationError(f"完整故事評論期間發生意外錯誤：{e}") from e
 
     async def generate_story_from_plan(
@@ -208,11 +236,10 @@ class CoTEngine:
                 pokemon_suggestion_context_val = first_pokemon
         
         try:
-            suggestion_prompt = prompt_templates.format_prompt(
-                prompt_templates.INPUT_REFINEMENT_SUGGESTION_PROMPT_TEMPLATE,
+            suggestion_prompt = prompt_templates.INPUT_REFINEMENT_SUGGESTION_PROMPT_TEMPLATE.format(
                 theme=theme_context,
                 genre=genre_context,
-            pokemon_names=pokemon_names_context,
+                pokemon_names=pokemon_names_context,
                 pokemon_names_for_suggestion_context=pokemon_suggestion_context_val,
                 synopsis=synopsis_context,
                 include_abilities="是" if include_abilities else "否"
@@ -237,8 +264,7 @@ class CoTEngine:
     ) -> str:
         try:
             formatted_pokemon_names = format_pokemon_names_for_prompt(pokemon_names)
-            prompt = prompt_templates.format_prompt(
-                prompt_templates.SYNOPSIS_ELABORATION_PROMPT_TEMPLATE,
+            prompt = prompt_templates.SYNOPSIS_ELABORATION_PROMPT_TEMPLATE.format(
                 theme=theme,
                 genre=genre,
                 pokemon_names=formatted_pokemon_names,
@@ -265,14 +291,24 @@ class CoTEngine:
     ) -> str:
         try:
             formatted_pokemon_names = format_pokemon_names_for_prompt(pokemon_names)
-            prompt = prompt_templates.format_prompt(
-                prompt_templates.CHARACTER_DEVELOPMENT_PROMPT_TEMPLATE,
-                theme=theme,
-                genre=genre,
-                pokemon_names=formatted_pokemon_names,
-                synopsis=synopsis,
-                story_plan=story_plan if story_plan else "N/A"
-            )
+            # 使用基本模板，因為沒有專門的角色模板
+            prompt = f"""<s>[INST] 您是一位寶可夢故事分析專家。根據以下資訊，請為故事中的主要角色（寶可夢和人類）建立詳細的角色檔案。
+
+故事資訊：
+- 主題：{theme}
+- 類型：{genre}
+- 寶可夢：{formatted_pokemon_names}
+- 概要：{synopsis}
+- 故事大綱：{story_plan if story_plan else "未提供"}
+
+請為每個角色提供：
+1. 性格特徵
+2. 動機和目標
+3. 背景故事
+4. 在故事中的作用
+
+請使用繁體中文回答。[/INST]"""
+            
             profiles = await self.llm_service.generate_text(prompt, max_tokens=1536, temperature=0.6)
             if not profiles or profiles.strip() == "":
                 raise StoryGenerationError("LLM 未能生成角色檔案。")
@@ -292,13 +328,23 @@ class CoTEngine:
         story_plan: Optional[str] = None
     ) -> str:
         try:
-            prompt = prompt_templates.format_prompt(
-                prompt_templates.SETTING_DETAIL_PROMPT_TEMPLATE,
-                theme=theme,
-                genre=genre,
-                synopsis=synopsis,
-                story_plan=story_plan if story_plan else "N/A"
-            )
+            prompt = f"""<s>[INST] 您是一位寶可夢世界建構專家。根據以下故事資訊，請詳細描述故事發生的場景和環境。
+
+故事資訊：
+- 主題：{theme}
+- 類型：{genre}
+- 概要：{synopsis}
+- 故事大綱：{story_plan if story_plan else "未提供"}
+
+請提供：
+1. 主要場景描述
+2. 環境氛圍
+3. 地理特徵
+4. 氣候和時間設定
+5. 對故事情節的影響
+
+請使用繁體中文回答。[/INST]"""
+            
             setting_details = await self.llm_service.generate_text(prompt, max_tokens=1024, temperature=0.7)
             if not setting_details or setting_details.strip() == "":
                 raise StoryGenerationError("LLM 未能生成場景細節。")
@@ -316,11 +362,20 @@ class CoTEngine:
         section_to_twist: Optional[str] = None
     ) -> str:
         try:
-            prompt = prompt_templates.format_prompt(
-                prompt_templates.PLOT_TWIST_SUGGESTION_PROMPT_TEMPLATE,
-                story_plan=story_plan,
-                section_to_twist=section_to_twist if section_to_twist else "（整體計畫或高潮）"
-            )
+            prompt = f"""<s>[INST] 您是一位創意故事顧問。根據以下故事大綱，請提供3-4個有趣的劇情轉折建議。
+
+故事大綱：
+{story_plan}
+
+特定區段（如有）：{section_to_twist if section_to_twist else "整體故事"}
+
+請為每個轉折提供：
+1. 轉折點描述
+2. 對故事的影響
+3. 如何自然融入現有情節
+
+請使用繁體中文回答。[/INST]"""
+            
             twists = await self.llm_service.generate_text(prompt, max_tokens=768, temperature=0.75)
             if not twists or twists.strip() == "":
                 raise StoryGenerationError("LLM 未能生成劇情轉折建議。")
@@ -340,13 +395,20 @@ class CoTEngine:
         desired_style_tone: str
     ) -> str:
         try:
-            prompt = prompt_templates.format_prompt(
-                prompt_templates.STYLE_TONE_TUNING_PROMPT_TEMPLATE,
-                story_text_to_tune=story_text_to_tune,
-                theme=theme,
-                genre=genre,
-                desired_style_tone=desired_style_tone
-            )
+            prompt = f"""<s>[INST] 您是一位故事風格編輯專家。請根據指定的風格和語調調整以下故事文本。
+
+原始故事文本：
+{story_text_to_tune}
+
+故事背景：
+- 主題：{theme}
+- 類型：{genre}
+- 期望風格：{desired_style_tone}
+
+請重寫故事文本，使其符合指定的風格和語調，同時保持原有的情節和角色。
+
+請使用繁體中文回答。[/INST]"""
+            
             tuned_text = await self.llm_service.generate_text(prompt, max_tokens=len(story_text_to_tune.split())*2 + 512, temperature=0.7)
             if not tuned_text or tuned_text.strip() == "":
                 raise StoryGenerationError("LLM 未能調整故事風格/語調。")
@@ -366,13 +428,23 @@ class CoTEngine:
         story_plan: Optional[str] = None
     ) -> str:
         try:
-            prompt = prompt_templates.format_prompt(
-                prompt_templates.STORY_BRANCHING_SUGGESTION_PROMPT_TEMPLATE,
-                current_story_segment=current_story_segment,
-                theme=theme,
-                genre=genre,
-                story_plan=story_plan if story_plan else "N/A"
-            )
+            prompt = f"""<s>[INST] 您是一位互動故事專家。根據目前的故事片段，請提供3-4個可能的故事發展方向。
+
+目前故事片段：
+{current_story_segment}
+
+故事背景：
+- 主題：{theme}
+- 類型：{genre}
+- 原始大綱：{story_plan if story_plan else "未提供"}
+
+請為每個分支提供：
+1. 分支描述
+2. 可能的後果
+3. 如何與主題保持一致
+
+請使用繁體中文回答。[/INST]"""
+            
             branches = await self.llm_service.generate_text(prompt, max_tokens=1024, temperature=0.7)
             if not branches or branches.strip() == "":
                 raise StoryGenerationError("LLM 未能生成故事分支建議。")
@@ -387,12 +459,12 @@ class CoTEngine:
 async def main_test_cot() -> None:
     print("--- 測試 CoTEngine ---")
     try:
-        llm = LLMService(model_name="gpt-4-turbo")
+        llm = LLMService(model_name="gpt-4.1")
         cot_engine = CoTEngine(llm_service=llm)
 
         test_theme = "勇敢的寶可夢面對最大的恐懼"
         test_genre = "冒險 (Adventure)"
-        test_pokemon = "皮丘 (Pichu)"
+        test_pokemon = "皮丘"
         test_synopsis = "一隻小小隻的皮丘非常害怕高處，但牠必須爬上一棵高聳的大樹，為生病的朋友摘取稀有的果實。"
         test_include_abilities = True
 
@@ -411,114 +483,6 @@ async def main_test_cot() -> None:
         print("\n--- 生成的故事計畫（獨立測試）---")
         print(generated_plan)
 
-        if generated_plan and generated_plan.strip():
-            print("\n測試從上述計畫生成完整故事...")
-            full_story_from_plan = await cot_engine.generate_story_from_plan(
-                theme=test_theme,
-                genre=test_genre,
-                pokemon_names=test_pokemon,
-                synopsis=test_synopsis,
-                story_plan=generated_plan, 
-                include_abilities=test_include_abilities
-            )
-            print("\n--- 生成的完整故事（來自獨立計畫測試）---")
-            print(full_story_from_plan)
-
-            print("\n--- 測試進階 CoT 階段：故事大綱闡述 ---")
-            elaborations = await cot_engine.get_synopsis_elaborations(
-                theme=test_theme, genre=test_genre, pokemon_names=test_pokemon, synopsis=test_synopsis
-            )
-            print(f"故事大綱闡述：\n{elaborations}")
-
-            print("\n--- 測試進階 CoT 階段：角色檔案 ---")
-            char_profiles = await cot_engine.get_character_profiles(
-                theme=test_theme, genre=test_genre, pokemon_names=test_pokemon, synopsis=test_synopsis, story_plan=generated_plan
-            )
-            print(f"角色檔案：\n{char_profiles}")
-
-            print("\n--- 測試進階 CoT 階段：場景細節 ---")
-            setting_desc = await cot_engine.get_setting_details(
-                theme=test_theme, genre=test_genre, synopsis=test_synopsis, story_plan=generated_plan
-            )
-            print(f"場景描述：\n{setting_desc}")
-
-            print("\n--- 測試進階 CoT 階段：劇情轉折建議 ---")
-            twists = await cot_engine.get_plot_twist_suggestions(story_plan=generated_plan)
-            print(f"劇情轉折建議：\n{twists}")
-            
-            if full_story_from_plan and full_story_from_plan.strip():
-                print("\n--- 測試進階 CoT 階段：風格/語調調整 ---")
-                story_snippet_for_tuning = " ".join(full_story_from_plan.split()[:100])
-                desired_style = "更加史詩與莊嚴感"
-                tuned_segment = await cot_engine.tune_story_style_tone(
-                    story_text_to_tune=story_snippet_for_tuning, 
-                    theme=test_theme, 
-                    genre=test_genre, 
-                    desired_style_tone=desired_style
-                )
-                print(f"調整後的故事片段（調整為'{desired_style}'）：\n{tuned_segment}")
-
-                print("\n--- 測試進階 CoT 階段：故事分支建議 ---")
-                branch_suggestions = await cot_engine.get_story_branching_suggestions(
-                    current_story_segment=story_snippet_for_tuning,
-                    theme=test_theme,
-                    genre=test_genre,
-                    story_plan=generated_plan
-                )
-                print(f"故事分支建議：\n{branch_suggestions}")
-        else:
-            print("由於計畫為空，跳過完整故事和進階 CoT 測試。")
-
-
-        test_theme_2 = "兩隻互相競爭的寶可夢學會合作"
-        test_genre_2 = "喜劇 (Comedy)"
-        test_pokemon_2 = "小火龍 (Charmander), 傑尼龜 (Squirtle)"
-        test_synopsis_2 = "一隻小火龍和一隻傑尼龜總是互相競爭，但牠們被困在一個洞穴裡，需要彼此合作才能逃脫。"
-        test_include_abilities_2 = False
-        
-        print(f"\n測試輸入優化建議：主題='{test_theme_2}', 類型='{test_genre_2}', 寶可夢='{test_pokemon_2}', 大綱='{test_synopsis_2[:30]}...', 能力：{test_include_abilities_2}")
-        suggestions_2 = await cot_engine.get_input_refinement_suggestions(test_theme_2, test_genre_2, test_pokemon_2, test_synopsis_2, test_include_abilities_2)
-        print(f"輸入優化建議（第二個例子）：\n{suggestions_2}")
-
-        print("\n僅測試故事計畫生成（第二個例子）...")
-        generated_plan_2 = await cot_engine.generate_story_plan(
-            theme=test_theme_2,
-            genre=test_genre_2,
-            pokemon_names=test_pokemon_2,
-            synopsis=test_synopsis_2,
-            include_abilities=test_include_abilities_2
-        )
-        print("\n--- 生成的故事計畫（獨立測試 - 第二個例子）---")
-        print(generated_plan_2)
-
-        if generated_plan_2 and generated_plan_2.strip():
-            print("\n測試從上述計畫生成完整故事（第二個例子）...")
-            full_story_from_plan_2 = await cot_engine.generate_story_from_plan(
-                theme=test_theme_2,
-                genre=test_genre_2,
-                pokemon_names=test_pokemon_2,
-                synopsis=test_synopsis_2,
-                story_plan=generated_plan_2,
-                include_abilities=test_include_abilities_2
-            )
-            print("\n--- 生成的完整故事（來自獨立計畫測試 - 第二個例子）---")
-            print(full_story_from_plan_2)
-
-            print("\n--- 測試進階 CoT 階段：故事大綱闡述（第二個例子）---")
-            elaborations_2 = await cot_engine.get_synopsis_elaborations(
-                theme=test_theme_2, genre=test_genre_2, pokemon_names=test_pokemon_2, synopsis=test_synopsis_2
-            )
-            print(f"故事大綱闡述（第二個例子）：\n{elaborations_2}")
-
-            print("\n--- 測試進階 CoT 階段：角色檔案（第二個例子）---")
-            char_profiles_2 = await cot_engine.get_character_profiles(
-                theme=test_theme_2, genre=test_genre_2, pokemon_names=test_pokemon_2, synopsis=test_synopsis_2, story_plan=generated_plan_2
-            )
-            print(f"角色檔案（第二個例子）：\n{char_profiles_2}")
-            
-        else:
-            print("由於第二個例子的計畫為空，跳過完整故事和進階 CoT 測試。")
-
     except StoryGenerationError as e:
         print(f"故事生成錯誤：{e}")
     except OpenAIConfigError as e:
@@ -527,5 +491,4 @@ async def main_test_cot() -> None:
         print(f"CoT 引擎測試期間發生意外錯誤：{e}")
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main_test_cot()) 
+    asyncio.run(main_test_cot())

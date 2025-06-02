@@ -8,7 +8,7 @@ class OpenAIConfigError(Exception):
     pass
 
 class LLMService:
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "gpt-4-turbo") -> None:
+    def __init__(self, api_key: Optional[str] = None, model_name: str = "gpt-4.1") -> None:
         resolved_api_key = api_key if api_key is not None else settings.OPENAI_API_KEY
         if not resolved_api_key:
             raise OpenAIConfigError(
@@ -55,7 +55,7 @@ class LLMService:
 async def main_test() -> None:
     print("測試 LLMService...")
     try:
-        llm_service = LLMService(model_name="gpt-3.5-turbo")
+        llm_service = LLMService(model_name="gpt-4.1")
         
         prompt_text = "將以下英文翻譯成法文: 'Hello, world!'"
         print(f"發送提示: {prompt_text}")
